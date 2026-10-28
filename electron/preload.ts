@@ -22,3 +22,16 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
   // You can expose other APTs you need here.
   // ...
 })
+
+// --------- 二维码助手相关 API ---------
+contextBridge.exposeInMainWorld('api', {
+  /** 打开文件对话框选择图片，返回 { name, dataUrl } 或 null */
+  pickImage: (): Promise<{ name: string; dataUrl: string } | null> =>
+    ipcRenderer.invoke('dialog:pick-image'),
+  /** 全屏截图，返回 dataURL 或 null */
+  captureScreen: (): Promise<string | null> =>
+    ipcRenderer.invoke('screen:capture'),
+  /** 读取剪贴板图片，返回 dataURL 或 null */
+  readClipboardImage: (): Promise<string | null> =>
+    ipcRenderer.invoke('clipboard:read-image'),
+})
