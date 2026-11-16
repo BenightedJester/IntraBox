@@ -7,6 +7,11 @@ import './style.css'
 import App from './App.vue'
 import router from './router'
 
+// Cesium 静态资源（Workers / Assets / Widgets）基地址：
+// 开发模式由 vite 中间件提供 /cesium，生产模式随 dist 打包经 /app/cesium 提供。
+// 必须在创建 Cesium Viewer 之前设置。
+window.CESIUM_BASE_URL = new URL('cesium/', document.baseURI).href
+
 const app = createApp(App)
 
 // 注册全部 element-plus 图标

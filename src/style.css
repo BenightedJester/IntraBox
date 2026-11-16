@@ -1,13 +1,70 @@
+/* ============================================================
+   IntraBox 设计系统
+   深空靛蓝为主调，电光青 / 琥珀 / 紫罗兰 / 翠绿为功能色，
+   亮色页面用冷瓷白底，三维工作区用深空底。
+   ============================================================ */
+
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* 品牌与功能色 */
+  --ib-indigo: #4f6bff;
+  --ib-indigo-deep: #3a52e0;
+  --ib-cyan: #17c3e6;
+  --ib-amber: #f5a524;
+  --ib-violet: #9163ff;
+  --ib-green: #17c98a;
+  --ib-rose: #f4517c;
+
+  /* 语义色 */
+  --ib-success: #17c98a;
+  --ib-warning: #f5a524;
+  --ib-danger: #f4517c;
+  --ib-info: #4f6bff;
+
+  /* 亮色中性 */
+  --ib-bg: #f3f5fb;
+  --ib-surface: #ffffff;
+  --ib-surface-2: #f7f8fd;
+  --ib-border: #e4e8f4;
+  --ib-ink: #1c2333;
+  --ib-ink-2: #5b6478;
+  --ib-ink-3: #98a1b8;
+
+  /* 深空中性（三维工作区） */
+  --ib-space-0: #070a12;
+  --ib-space-1: #0c1120;
+  --ib-space-2: #131a2e;
+  --ib-space-3: #1c2540;
+  --ib-space-border: rgba(122, 144, 210, 0.18);
+  --ib-space-ink: #e8ecfa;
+  --ib-space-ink-2: #9aa6c8;
+  --ib-space-ink-3: #5f6b8c;
+
+  font-family: Inter, 'Segoe UI', system-ui, -apple-system, 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #1f2d3d;
-  background-color: #f5f7fa;
+  color: var(--ib-ink);
+  background-color: var(--ib-bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Element Plus 主题对齐 */
+  --el-color-primary: #4f6bff;
+  --el-color-primary-light-3: #7d90ff;
+  --el-color-primary-light-5: #a5b2ff;
+  --el-color-primary-light-7: #cdd5ff;
+  --el-color-primary-light-8: #e0e5ff;
+  --el-color-primary-light-9: #f0f3ff;
+  --el-color-primary-dark-2: #3a52e0;
+  --el-color-success: #17c98a;
+  --el-color-warning: #f5a524;
+  --el-color-danger: #f4517c;
+  --el-color-error: #f4517c;
+  --el-color-info: #8a93ad;
+  --el-border-radius-base: 8px;
+  --el-font-family: inherit;
 }
 
 * {
@@ -24,5 +81,208 @@ body,
 }
 
 #app {
-  background-color: #f5f7fa;
+  background-color: var(--ib-bg);
+}
+
+/* ---------- 自定义滚动条（亮色） ---------- */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #c6cde0;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #a9b3cf;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* ---------- 自定义滚动条（深色工作区） ---------- */
+.ib-dark ::-webkit-scrollbar-thumb,
+.ib-dark::-webkit-scrollbar-thumb {
+  background: #2c3860;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.ib-dark ::-webkit-scrollbar-thumb:hover,
+.ib-dark::-webkit-scrollbar-thumb:hover {
+  background: #3d4d80;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* ---------- 页面过渡 ---------- */
+.ib-page-enter-active,
+.ib-page-leave-active {
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.ib-page-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.ib-page-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* ---------- 通用卡片 / 面板 ---------- */
+.ib-panel {
+  background: var(--ib-surface);
+  border: 1px solid var(--ib-border);
+  border-radius: 14px;
+}
+
+.ib-page-header {
+  margin-bottom: 18px;
+}
+.ib-page-header .el-page-header__header {
+  align-items: center;
+}
+.ib-page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ib-ink);
+  letter-spacing: 0.3px;
+}
+.ib-page-sub {
+  margin-left: 12px;
+  font-size: 13px;
+  color: var(--ib-ink-3);
+  font-weight: 400;
+}
+
+/* ---------- 入场动画 ---------- */
+@keyframes ib-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.ib-rise {
+  animation: ib-rise 0.5s cubic-bezier(0.22, 0.8, 0.3, 1) both;
+}
+
+@keyframes ib-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(23, 201, 138, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(23, 201, 138, 0);
+  }
+}
+.ib-online-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ib-green);
+  animation: ib-pulse 2.2s ease-out infinite;
+}
+.ib-offline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #b7bfd4;
+}
+
+/* ---------- 消息气泡入场 ---------- */
+@keyframes ib-bubble {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ---------- Element Plus 微调 ---------- */
+.el-card {
+  --el-card-border-color: var(--ib-border);
+}
+.el-button {
+  font-weight: 500;
+}
+.el-table {
+  --el-table-border-color: var(--ib-border);
+  --el-table-header-bg-color: var(--ib-surface-2);
+  --el-table-row-hover-bg-color: #f0f3ff;
+}
+
+/* 深色工作区内的 Element Plus 反色 */
+.ib-dark {
+  --el-bg-color: var(--ib-space-2);
+  --el-bg-color-overlay: var(--ib-space-2);
+  --el-fill-color-blank: var(--ib-space-2);
+  --el-fill-color-light: var(--ib-space-3);
+  --el-fill-color-lighter: #182038;
+  --el-text-color-primary: var(--ib-space-ink);
+  --el-text-color-regular: var(--ib-space-ink-2);
+  --el-text-color-secondary: var(--ib-space-ink-3);
+  --el-text-color-placeholder: #4d587a;
+  --el-border-color: var(--ib-space-border);
+  --el-border-color-light: var(--ib-space-border);
+  --el-border-color-lighter: rgba(122, 144, 210, 0.12);
+  --el-color-primary: #7d90ff;
+  --el-color-primary-light-3: #5f74e8;
+  --el-color-primary-light-5: #46539e;
+  --el-color-primary-light-7: #2e3a6e;
+  --el-color-primary-light-8: #26305a;
+  --el-color-primary-light-9: #1d2547;
+  --el-color-primary-dark-2: #9daaff;
+  --el-disabled-bg-color: #182038;
+  --el-disabled-text-color: #4d587a;
+  --el-disabled-border-color: rgba(122, 144, 210, 0.12);
+  color: var(--ib-space-ink);
+}
+.ib-dark .el-slider__runway {
+  background-color: #232d4e;
+}
+.ib-dark .el-slider__bar {
+  background-color: #7d90ff;
+}
+.ib-dark .el-slider__button {
+  border-color: #7d90ff;
+  background-color: #0c1120;
+}
+.ib-dark .el-select__wrapper,
+.ib-dark .el-input__wrapper {
+  background-color: #182038;
+  box-shadow: 0 0 0 1px var(--ib-space-border) inset;
+}
+.ib-dark .el-switch.is-checked .el-switch__core {
+  background-color: #5f74e8;
+  border-color: #5f74e8;
+}
+.ib-dark .el-table {
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: #182038;
+  --el-table-border-color: var(--ib-space-border);
+  --el-table-text-color: var(--ib-space-ink-2);
+  --el-table-header-text-color: var(--ib-space-ink);
+  --el-table-row-hover-bg-color: #1d2547;
+}
+.ib-dark .el-dialog {
+  --el-dialog-bg-color: var(--ib-space-1);
+  background: var(--ib-space-1);
+  border: 1px solid var(--ib-space-border);
+}
+.ib-dark .el-empty__description p {
+  color: var(--ib-space-ink-3);
 }

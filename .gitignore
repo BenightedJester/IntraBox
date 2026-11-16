@@ -14,6 +14,10 @@ dist-electron
 release
 *.local
 
+# 联调测试生成的模型 / 瓦片资产
+test-assets
+test-shots
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
