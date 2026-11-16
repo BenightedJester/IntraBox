@@ -477,7 +477,7 @@ if (new URLSearchParams(location.search).has('debug')) {
       </div>
       <div class="top-actions">
         <el-button size="small" :icon="'Link'" @click="openUrlDialog">URL</el-button>
-        <el-button size="small" :icon="'Connection'" @click="lanDialog = true">局域网</el-button>
+        <el-button size="small" :icon="'Connection'" @click="lanDialog = true">局域网共享</el-button>
         <el-button size="small" :icon="'Clock'" @click="historyDrawer = true">历史</el-button>
       </div>
     </header>
@@ -517,7 +517,7 @@ if (new URLSearchParams(location.search).has('debug')) {
           </div>
           <div class="stage-empty__actions">
             <el-button type="primary" :icon="'Link'" @click="openUrlDialog">从 URL 打开</el-button>
-            <el-button :icon="'Connection'" @click="lanDialog = true">从局域网打开</el-button>
+            <el-button :icon="'Connection'" @click="lanDialog = true">从局域网共享打开</el-button>
           </div>
           <div v-if="quickHistory.length" class="stage-empty__history">
             <span class="stage-empty__history-label">最近打开</span>
@@ -636,7 +636,7 @@ if (new URLSearchParams(location.search).has('debug')) {
       </template>
     </el-dialog>
 
-    <!-- 局域网打开 -->
+    <!-- 局域网共享打开 -->
     <OpenFromLanDialog v-model="lanDialog" filter="tiles" @open="onLanOpen" />
 
     <!-- 打开历史 -->

@@ -124,8 +124,21 @@ export function registerLanIpc(
 
   // ---------------- 共享文件 -> 查看器数据源 ----------------
   handle('source:from-share', async (peerId: string, shareId: string, relPath: string, shareName: string): Promise<ViewerSource> => {
-    const peer = service.peers().find((p) => p.id === peerId)
-    if (!peer) throw new Error('对方不在线')
+    const self = service.selfInfo()
+    let baseUrl: string
+    let originLabel: string
+    if (peerId === self.id) {
+      // 本机共享：经回环地址访问自己的 HTTP 服务
+      if (!self.running || !self.port) throw new Error('本机共享服务未启动，请先开启局域网服务')
+      if (!service.shares().some((s) => s.id === shareId && s.enabled)) throw new Error('共享不存在或已关闭')
+      baseUrl = `http://127.0.0.1:${self.port}/share/${shareId}/fs/`
+      originLabel = `本机共享「${shareName}」`
+    } else {
+      const peer = service.peers().find((p) => p.id === peerId)
+      if (!peer) throw new Error('对方不在线')
+      baseUrl = `http://${peer.ip}:${peer.port}/share/${shareId}/fs/`
+      originLabel = `${peer.name} 的共享「${shareName}」`
+    }
     let files: ViewerSource['files']
     let truncated = false
     try {
@@ -138,12 +151,12 @@ export function registerLanIpc(
     }
     return {
       kind: 'lan',
-      baseUrl: `http://${peer.ip}:${peer.port}/share/${shareId}/fs/`,
+      baseUrl,
       relPath,
       name: path.posix.basename(relPath),
       files,
       truncated,
-      originLabel: `${peer.name} 的共享「${shareName}」`,
+      originLabel,
     }
   })
 

@@ -3,10 +3,10 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useLanStore } from '../stores/lan'
 import { formatBytes, formatMtime, extOf, copyText } from '../utils/format'
-import { isModelFile, isTilesetFile, type FileEntry, type PublicShare } from '../shared/lan-types'
+import { isModelFile, isTilesetFile, type FileEntry, type PeerInfo, type PublicShare } from '../shared/lan-types'
 
 /**
- * 局域网文件浏览器：邻居 -> 共享 -> 目录 三级导航。
+ * 局域网文件浏览器：设备（本机 + 邻居）-> 共享 -> 目录 三级导航。
  * filter 控制哪些文件可被“打开”（model / tiles / any）。
  */
 const props = withDefaults(
@@ -37,7 +37,16 @@ const sortKey = ref<'name' | 'size' | 'mtime'>('name')
 const sortAsc = ref(true)
 
 const currentPath = computed(() => pathStack.value.join('/'))
-const selectedPeer = computed(() => state.peers.find((p) => p.id === selectedPeerId.value))
+/** 本机作为首个设备：自己的共享无需等待邻居发现即可浏览 */
+const selfPeer = computed<PeerInfo>(() => ({
+  id: state.self.id,
+  name: state.self.name || '本机',
+  ip: '127.0.0.1',
+  port: state.self.port,
+  lastSeen: 0,
+}))
+const devices = computed(() => [selfPeer.value, ...state.peers])
+const selectedPeer = computed(() => devices.value.find((p) => p.id === selectedPeerId.value))
 const selectedShare = computed(() => shares.value.find((s) => s.id === selectedShareId.value))
 
 const filteredEntries = computed(() => {
@@ -186,20 +195,25 @@ function fileIcon(entry: FileEntry): string {
 }
 
 watch(
-  () => state.peers.map((p) => p.id).join(','),
+  () => devices.value.map((p) => p.id).join(','),
   () => {
-    // 选中的邻居离线后清空
-    if (selectedPeerId.value && !state.peers.some((p) => p.id === selectedPeerId.value)) {
+    // 选中的设备离线后清空
+    if (selectedPeerId.value && !devices.value.some((p) => p.id === selectedPeerId.value)) {
       selectedPeerId.value = ''
       shares.value = []
       entries.value = []
+    }
+    // 设备后于对话框上线时补自动选择，避免列表可见却永远空载
+    if (!selectedPeerId.value && devices.value.length > 0) {
+      selectedPeerId.value = devices.value[0].id
+      void loadShares()
     }
   },
 )
 
 onMounted(() => {
-  if (!selectedPeerId.value && state.peers.length > 0) {
-    selectedPeerId.value = state.peers[0].id
+  if (!selectedPeerId.value && devices.value.length > 0) {
+    selectedPeerId.value = devices.value[0].id
   }
   if (selectedPeerId.value) void loadShares()
 })
@@ -209,12 +223,11 @@ defineExpose({ refresh: loadShares })
 
 <template>
   <div class="lan-browser">
-    <!-- 邻居选择 -->
+    <!-- 设备选择（本机 + 邻居） -->
     <div class="lan-browser__peers">
-      <div class="lan-browser__label">邻居</div>
-      <el-empty v-if="state.peers.length === 0" description="暂无在线邻居" :image-size="48" />
+      <div class="lan-browser__label">设备</div>
       <button
-        v-for="peer in state.peers"
+        v-for="peer in devices"
         :key="peer.id"
         class="peer-chip"
         :class="{ 'peer-chip--active': peer.id === selectedPeerId }"
@@ -222,14 +235,16 @@ defineExpose({ refresh: loadShares })
       >
         <span class="ib-online-dot" />
         <span class="peer-chip__name">{{ peer.name }}</span>
-        <span class="peer-chip__ip">{{ peer.ip }}</span>
+        <span v-if="peer.id === state.self.id" class="peer-chip__self">本机</span>
+        <span v-else class="peer-chip__ip">{{ peer.ip }}</span>
       </button>
+      <el-empty v-if="state.peers.length === 0" description="暂无其它在线邻居" :image-size="48" />
     </div>
 
     <!-- 共享 + 目录 -->
     <div class="lan-browser__main">
       <div v-if="!selectedPeerId" class="lan-browser__placeholder">
-        <el-empty description="选择左侧邻居以浏览其共享" :image-size="72" />
+        <el-empty description="选择左侧设备以浏览其共享" :image-size="72" />
       </div>
       <template v-else>
         <div class="lan-browser__toolbar">
@@ -393,6 +408,15 @@ defineExpose({ refresh: loadShares })
 .peer-chip__ip {
   font-size: 11px;
   color: var(--ib-ink-3);
+}
+.peer-chip__self {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ib-indigo);
+  border: 1px solid var(--ib-indigo);
+  border-radius: 6px;
+  padding: 0 5px;
 }
 
 .lan-browser__main {

@@ -5,7 +5,7 @@ import LanFileBrowser from './LanFileBrowser.vue'
 import type { ViewerSource } from '../shared/lan-types'
 
 /**
- * “从局域网打开”对话框：浏览邻居共享并构造查看器数据源。
+ * “从局域网共享打开”对话框：浏览本机与邻居共享并构造查看器数据源。
  * 选中文件后调用主进程 source:from-share（附带文件索引）。
  */
 defineProps<{

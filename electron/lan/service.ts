@@ -18,7 +18,7 @@ import type {
 import { Settings } from './settings'
 import { Discovery } from './discovery'
 import { createLanServer, listenWithRetry, type OutgoingFile } from './http'
-import { lanIPv4s, mimeOf, safeJoin } from './fs-utils'
+import { lanIPv4s, listDir, mimeOf, safeJoin, walkFiles } from './fs-utils'
 
 const PREFERRED_PORT = 41778
 const HISTORY_LIMIT = 1000
@@ -210,6 +210,12 @@ export class LanService extends EventEmitter {
 
   // ---------------- 邻居文件访问（HTTP 客户端） ----------------
 
+  /** 本机共享根目录（仅启用中的共享），与 HTTP 端 getShareRoot 同口径 */
+  private selfShareRoot(id: string): string | null {
+    const share = this.settings.data.shares.find((s) => s.id === id && s.enabled)
+    return share && fs.existsSync(share.path) ? share.path : null
+  }
+
   private peerBase(peerId: string): string {
     const peer = this.discovery?.get(peerId)
     if (!peer) throw new Error('对方不在线或已离开局域网')
@@ -243,16 +249,30 @@ export class LanService extends EventEmitter {
   }
 
   async peerShares(peerId: string): Promise<PublicShare[]> {
+    // 本机共享直接读本地配置，不走 HTTP
+    if (peerId === this.settings.data.id) return this.publicShares()
     const data = await this.fetchJson<{ shares: PublicShare[] }>(`${this.peerBase(peerId)}/api/shares`)
     return data.shares ?? []
   }
 
   async peerList(peerId: string, shareId: string, relPath: string): Promise<DirListing> {
+    if (peerId === this.settings.data.id) {
+      const root = this.selfShareRoot(shareId)
+      if (!root) throw new Error('共享不存在或已关闭')
+      const listing = listDir(root, relPath)
+      if (!listing) throw new Error('目录不存在')
+      return { path: relPath, ...listing }
+    }
     const url = `${this.peerBase(peerId)}/api/shares/${shareId}/list?path=${encodeURIComponent(relPath)}`
     return this.fetchJson<DirListing>(url)
   }
 
   async peerIndex(peerId: string, shareId: string): Promise<FileIndex> {
+    if (peerId === this.settings.data.id) {
+      const root = this.selfShareRoot(shareId)
+      if (!root) throw new Error('共享不存在或已关闭')
+      return walkFiles(root)
+    }
     return this.fetchJson<FileIndex>(`${this.peerBase(peerId)}/api/shares/${shareId}/index`, 30000)
   }
 

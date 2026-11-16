@@ -26,7 +26,7 @@ const list = computed(() => store.state.history[props.viewer])
 
 const KIND_META: Record<HistoryEntry['kind'], { label: string; icon: string; color: string }> = {
   local: { label: '本地', icon: 'FolderOpened', color: 'var(--ib-violet)' },
-  lan: { label: '局域网', icon: 'Connection', color: 'var(--ib-cyan)' },
+  lan: { label: '局域网共享', icon: 'Connection', color: 'var(--ib-cyan)' },
   url: { label: 'URL', icon: 'Link', color: 'var(--ib-amber)' },
 }
 

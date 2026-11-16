@@ -151,20 +151,6 @@ async function pickFile() {
   await openLocalInfo(info, info.candidates[0]?.p)
 }
 
-async function pickFolder() {
-  const info = await window.api.model.pickFolder()
-  if (!info) return
-  if (info.candidates.length === 0) {
-    ElMessage.warning('该文件夹内没有支持的模型文件')
-    return
-  }
-  if (info.candidates.length === 1) await openLocalInfo(info, info.candidates[0].p)
-  else {
-    candidates.value = info
-    candidateDialog.value = true
-  }
-}
-
 async function openLocalInfo(info: LocalRootInfo, relPath?: string) {
   if (!relPath) return
   const src = await window.api.source.fromLocal(info, relPath)
@@ -320,9 +306,8 @@ if (new URLSearchParams(location.search).has('debug')) {
       </div>
       <div class="top-actions">
         <el-button size="small" :icon="'Document'" @click="pickFile">打开文件</el-button>
-        <el-button size="small" :icon="'FolderOpened'" @click="pickFolder">打开文件夹</el-button>
         <el-button size="small" :icon="'Link'" @click="openUrlDialog">URL</el-button>
-        <el-button size="small" :icon="'Connection'" @click="lanDialog = true">局域网</el-button>
+        <el-button size="small" :icon="'Connection'" @click="lanDialog = true">局域网共享</el-button>
         <el-button size="small" :icon="'Clock'" @click="historyDrawer = true">历史</el-button>
       </div>
     </header>
@@ -362,9 +347,8 @@ if (new URLSearchParams(location.search).has('debug')) {
             <span>中文 / 空格路径兼容</span>
           </div>
           <div class="stage-empty__actions">
-            <el-button type="primary" :icon="'FolderOpened'" @click="pickFolder">打开文件夹</el-button>
-            <el-button :icon="'Document'" @click="pickFile">打开文件</el-button>
-            <el-button :icon="'Connection'" @click="lanDialog = true">从局域网打开</el-button>
+            <el-button type="primary" :icon="'Document'" @click="pickFile">打开文件</el-button>
+            <el-button :icon="'Connection'" @click="lanDialog = true">从局域网共享打开</el-button>
           </div>
           <div v-if="quickHistory.length" class="stage-empty__history">
             <span class="stage-empty__history-label">最近打开</span>
@@ -534,7 +518,7 @@ if (new URLSearchParams(location.search).has('debug')) {
       </div>
     </el-dialog>
 
-    <!-- 局域网打开 -->
+    <!-- 局域网共享打开 -->
     <OpenFromLanDialog v-model="lanDialog" filter="model" @open="onLanOpen" />
 
     <!-- 打开历史 -->
