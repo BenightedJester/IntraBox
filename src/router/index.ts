@@ -37,6 +37,12 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/TilesViewerView.vue'),
     meta: { title: '3D Tiles 查看' },
   },
+  {
+    path: '/settings',
+    name: 'settings',
+    component: () => import('../views/SettingsView.vue'),
+    meta: { title: '设置' },
+  },
 ]
 
 const router = createRouter({

@@ -1,5 +1,5 @@
 import { ipcRenderer, contextBridge, webUtils } from 'electron'
-import { LAN_EVENTS, type LanEventChannel } from '../src/shared/lan-types'
+import { LAN_EVENTS, type LanEventChannel, type CloseAction } from '../src/shared/lan-types'
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
@@ -58,6 +58,13 @@ contextBridge.exposeInMainWorld('api', {
     pushHistory: (kind: 'model' | 'tiles', entry: unknown) => ipcRenderer.invoke('lan:push-history', kind, entry),
     removeHistory: (kind: 'model' | 'tiles', id: string) => ipcRenderer.invoke('lan:remove-history', kind, id),
     clearHistory: (kind: 'model' | 'tiles') => ipcRenderer.invoke('lan:clear-history', kind),
+  },
+
+  // ---- 应用设置（关闭行为 / 开机自启） ----
+  settings: {
+    get: () => ipcRenderer.invoke('settings:get'),
+    setCloseAction: (action: CloseAction) => ipcRenderer.invoke('settings:set-close-action', action),
+    setAutoStart: (on: boolean) => ipcRenderer.invoke('settings:set-auto-start', on),
   },
 
   // ---- 聊天 ----

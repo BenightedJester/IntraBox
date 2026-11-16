@@ -50,6 +50,12 @@ interface Window {
       removeHistory(kind: 'model' | 'tiles', id: string): Promise<void>
       clearHistory(kind: 'model' | 'tiles'): Promise<void>
     }
+    settings: {
+      get(): Promise<LanTypes['AppSettingsView']>
+      setCloseAction(action: LanTypes['CloseAction']): Promise<void>
+      /** 返回系统实际生效的自启状态 */
+      setAutoStart(on: boolean): Promise<boolean>
+    }
     chat: {
       sendText(peerId: string, text: string): Promise<LanTypes['ChatMessage']>
       sendFilePath(peerId: string, filePath: string): Promise<LanTypes['ChatMessage']>

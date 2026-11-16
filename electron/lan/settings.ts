@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { randomUUID } from 'node:crypto'
-import type { HistoryEntry, HistoryLists, ShareInfo } from '../../src/shared/lan-types'
+import type { CloseAction, HistoryEntry, HistoryLists, ShareInfo } from '../../src/shared/lan-types'
 import { HISTORY_LIMIT, historyKey } from '../../src/shared/lan-types'
 
 export interface SettingsData {
@@ -14,6 +14,10 @@ export interface SettingsData {
   /** 模型 / 3D Tiles 查看器打开历史 */
   history: HistoryLists
   serviceEnabled: boolean
+  /** 关闭主窗口时的行为，默认每次询问 */
+  closeAction: CloseAction
+  /** 开机自启，默认关闭 */
+  autoStart: boolean
 }
 
 function isHistoryEntry(e: unknown): e is HistoryEntry {
@@ -77,6 +81,8 @@ export class Settings {
       shares: [],
       history: { model: [], tiles: [] },
       serviceEnabled: true,
+      closeAction: 'ask',
+      autoStart: false,
     }
   }
 
@@ -103,6 +109,8 @@ export class Settings {
         shares,
         history: { model: pick('model'), tiles: pick('tiles') },
         serviceEnabled: raw.serviceEnabled !== false,
+        closeAction: raw.closeAction === 'hide' || raw.closeAction === 'quit' ? raw.closeAction : 'ask',
+        autoStart: raw.autoStart === true,
       }
     } catch {
       return base

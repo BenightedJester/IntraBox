@@ -116,6 +116,9 @@ function go(route: string) {
         <span class="blob blob--3" />
       </div>
       <div class="hero__content">
+        <button class="hero__settings" title="设置" @click="go('/settings')">
+          <el-icon :size="18"><Setting /></el-icon>
+        </button>
         <div class="hero__badge">要你命3000 · 离线可用</div>
         <h1 class="hero__title">要你命3000</h1>
         <p class="hero__subtitle">聊天 · 共享 · 三维查看 · 二维码 —— 同一局域网，开箱即用</p>
@@ -228,6 +231,27 @@ function go(route: string) {
 .hero__content {
   position: relative;
   z-index: 1;
+}
+.hero__settings {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(122, 144, 210, 0.28);
+  background: rgba(12, 17, 32, 0.55);
+  color: #c6cfea;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.hero__settings:hover {
+  border-color: rgba(125, 144, 255, 0.6);
+  background: rgba(79, 107, 255, 0.16);
+  color: #f0f3ff;
 }
 .hero__badge {
   display: inline-block;

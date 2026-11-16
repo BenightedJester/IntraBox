@@ -3,6 +3,21 @@
  * 仅包含纯类型与常量，可被两端安全引用。
  */
 
+// ---------------- 应用设置 ----------------
+
+/** 关闭主窗口时的行为：每次询问 / 隐藏到托盘 / 直接退出 */
+export type CloseAction = 'ask' | 'hide' | 'quit'
+
+/** 设置页读取的应用设置视图 */
+export interface AppSettingsView {
+  closeAction: CloseAction
+  autoStart: boolean
+  /** 当前环境是否支持开机自启（仅打包后的桌面应用） */
+  autoStartSupported: boolean
+  /** 是否便携版（exe 位置可能变动，自启路径需跟随同步） */
+  isPortable: boolean
+}
+
 // ---------------- 局域网基础 ----------------
 
 export interface ShareInfo {

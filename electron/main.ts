@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, dialog, desktopCapturer, clipboard, screen, Menu, protocol, type WebContents } from 'electron'
+import { app, BrowserWindow, ipcMain, dialog, desktopCapturer, clipboard, screen, Menu, Tray, nativeImage, protocol, type WebContents } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -54,6 +54,10 @@ protocol.registerSchemesAsPrivileged([
 let win: BrowserWindow | null
 let lanService: LanService | null = null
 let modelRoots: ModelRoots | null = null
+let tray: Tray | null = null
+// 真正退出时置位，避免 close 拦截反复弹询问框
+let isQuitting = false
+let trayHintShown = false
 
 // 安全推送：退出流程中窗口可能已销毁，而服务 stop() 仍会派发事件
 function sendToWindow(channel: string, payload?: unknown) {
@@ -102,13 +106,111 @@ function registerShortcuts(webContents: WebContents) {
   })
 }
 
+// --------- 托盘 / 关闭行为 / 开机自启 ---------
+function showMainWindow() {
+  if (!win || win.isDestroyed()) {
+    createWindow()
+    return
+  }
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
+}
+
+function hideToTray() {
+  win?.hide()
+  if (!trayHintShown && tray) {
+    trayHintShown = true
+    tray.displayBalloon({
+      title: '要你命3000',
+      content: '已隐藏到系统托盘，局域网服务仍在运行。双击托盘图标可恢复窗口。',
+    })
+  }
+}
+
+function quitApp() {
+  isQuitting = true
+  app.quit()
+}
+
+function createTray() {
+  // 托盘与窗口、安装包共用同一张源图 public/icon.png，托盘运行时缩小，不另存小图
+  const icon = nativeImage
+    .createFromPath(path.join(process.env.VITE_PUBLIC!, 'icon.png'))
+    .resize({ width: 32, height: 32, quality: 'best' })
+  tray = new Tray(icon.isEmpty() ? nativeImage.createEmpty() : icon)
+  tray.setToolTip('要你命3000')
+  tray.setContextMenu(Menu.buildFromTemplate([
+    { label: '显示主窗口', click: showMainWindow },
+    { type: 'separator' },
+    { label: '退出', click: quitApp },
+  ]))
+  tray.on('double-click', showMainWindow)
+}
+
+/** 关闭拦截：按设置询问 / 隐藏到托盘 / 直接退出 */
+function handleClose(e: Electron.Event) {
+  if (isQuitting) return
+  e.preventDefault()
+  const action = lanService?.settings.data.closeAction ?? 'ask'
+  if (action === 'hide') {
+    hideToTray()
+    return
+  }
+  if (action === 'quit') {
+    quitApp()
+    return
+  }
+  void dialog.showMessageBox(win!, {
+    type: 'question',
+    title: '关闭主窗口',
+    message: '要隐藏到托盘还是退出应用？',
+    detail: '隐藏到托盘后局域网服务继续运行，可随时从托盘恢复窗口。',
+    buttons: ['隐藏到托盘', '退出应用', '取消'],
+    defaultId: 0,
+    cancelId: 2,
+    noLink: true,
+    checkboxLabel: '记住我的选择，下次不再询问',
+    checkboxChecked: false,
+  }).then(({ response, checkboxChecked }) => {
+    if (response === 2) return
+    const chosen = response === 0 ? 'hide' : 'quit'
+    if (checkboxChecked && lanService) {
+      lanService.settings.data.closeAction = chosen
+      lanService.settings.save()
+    }
+    if (chosen === 'hide') hideToTray()
+    else quitApp()
+  })
+}
+
+/**
+ * 开机自启写入的路径：
+ * 便携版 exe 是自解压壳，运行时 execPath 指向临时解压目录，
+ * 必须用 PORTABLE_EXECUTABLE_FILE（用户实际的便携 exe）注册，
+ * 否则重启后临时目录失效导致自启失败。
+ */
+function autoStartExePath() {
+  return process.env.PORTABLE_EXECUTABLE_FILE || process.execPath
+}
+
+/** 按持久化设置同步系统自启项（每次启动都同步，便携版挪位置后路径自动跟随） */
+function syncAutoStart() {
+  if (!app.isPackaged || !lanService) return
+  app.setLoginItemSettings({
+    openAtLogin: lanService.settings.data.autoStart,
+    path: autoStartExePath(),
+  })
+}
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1280,
     height: 820,
     minWidth: 960,
     minHeight: 620,
-    icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    // 与托盘、安装包共用同一张应用图标（public/icon.png）
+    icon: path.join(process.env.VITE_PUBLIC, 'icon.png'),
     backgroundColor: '#f3f5fb',
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
@@ -122,6 +224,8 @@ function createWindow() {
 
   // 窗口聚焦时停止任务栏闪烁
   win.on('focus', () => win?.flashFrame(false))
+
+  win.on('close', handleClose)
 
   registerShortcuts(win.webContents)
 
@@ -245,6 +349,9 @@ app.whenReady().then(async () => {
   }
   registerLanIpc(lanService, modelRoots, () => win)
 
+  createTray()
+  syncAutoStart()
+
   if (lanService.settings.data.serviceEnabled) {
     try {
       await lanService.start()
@@ -257,6 +364,7 @@ app.whenReady().then(async () => {
 })
 
 app.on('before-quit', () => {
+  isQuitting = true
   lanService?.settings.flush()
   void lanService?.stop()
 })

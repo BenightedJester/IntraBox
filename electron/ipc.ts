@@ -1,9 +1,9 @@
-import { ipcMain, dialog, type BrowserWindow } from 'electron'
+import { ipcMain, dialog, app, type BrowserWindow } from 'electron'
 import path from 'node:path'
 import fs from 'node:fs'
 import type { LanService } from './lan/service'
 import type { ModelRoots } from './lan/modelRoots'
-import type { HistoryEntry, LocalRootInfo, ViewerSource } from '../src/shared/lan-types'
+import type { AppSettingsView, CloseAction, HistoryEntry, LocalRootInfo, ViewerSource } from '../src/shared/lan-types'
 
 /** 注册局域网 / 查看器相关 IPC。所有 handler 统一捕获异常并抛出给渲染端。 */
 export function registerLanIpc(
@@ -46,6 +46,29 @@ export function registerLanIpc(
   })
   handle('lan:clear-history', (kind: 'model' | 'tiles') => {
     service.settings.clearHistory(kind)
+  })
+
+  // ---------------- 应用设置（关闭行为 / 开机自启） ----------------
+  // 便携版 exe 是自解压壳，自启须注册真实 exe 路径（与 main.ts syncAutoStart 一致）
+  const autoStartExePath = () => process.env.PORTABLE_EXECUTABLE_FILE || process.execPath
+  handle('settings:get', (): AppSettingsView => ({
+    closeAction: service.settings.data.closeAction,
+    autoStart: service.settings.data.autoStart,
+    autoStartSupported: app.isPackaged,
+    isPortable: !!process.env.PORTABLE_EXECUTABLE_FILE,
+  }))
+  handle('settings:set-close-action', (action: CloseAction) => {
+    if (action !== 'ask' && action !== 'hide' && action !== 'quit') throw new Error('无效的关闭行为')
+    service.settings.data.closeAction = action
+    service.settings.save()
+  })
+  handle('settings:set-auto-start', (on: boolean) => {
+    if (!app.isPackaged) throw new Error('开发模式不支持开机自启，请使用打包后的应用')
+    app.setLoginItemSettings({ openAtLogin: on, path: autoStartExePath() })
+    const actual = app.getLoginItemSettings({ path: autoStartExePath() }).openAtLogin
+    service.settings.data.autoStart = actual
+    service.settings.save()
+    return actual
   })
 
   // ---------------- 聊天 ----------------
