@@ -5,7 +5,7 @@ const routes: RouteRecordRaw[] = [
     path: '/',
     name: 'home',
     component: () => import('../views/HomeView.vue'),
-    meta: { title: '内网工具箱' },
+    meta: { title: '要你命3000' },
   },
   {
     path: '/qr-helper',
@@ -46,8 +46,8 @@ const router = createRouter({
 })
 
 router.afterEach((to) => {
-  const title = (to.meta.title as string) || '内网工具箱'
-  document.title = to.name === 'home' ? title : `${title} · 内网工具箱`
+  const title = (to.meta.title as string) || '要你命3000'
+  document.title = to.name === 'home' ? title : `${title} · 要你命3000`
 })
 
 export default router

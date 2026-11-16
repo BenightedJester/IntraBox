@@ -52,6 +52,12 @@ function selectPeer(id: string) {
   store.setActivePeer(id)
 }
 
+function goBack() {
+  // 无历史记录时（如直接落在 /chat）兜底回首页
+  if (window.history.length > 1) router.back()
+  else router.push('/')
+}
+
 async function send() {
   const text = draft.value.trim()
   if (!text || !activePeer.value) return
@@ -190,6 +196,9 @@ if (new URLSearchParams(location.search).has('debug')) {
   <div class="chat">
     <!-- 左侧：自身 + 邻居列表 -->
     <aside class="chat__rail">
+      <div class="rail-back">
+        <el-button :icon="'ArrowLeft'" text size="small" @click="goBack">返回</el-button>
+      </div>
       <div class="self-card">
         <div class="self-card__avatar" :style="{ background: `hsl(${idHue(state.self.id)} 62% 52%)` }">
           {{ nameInitial(state.self.name) }}
@@ -391,11 +400,22 @@ if (new URLSearchParams(location.search).has('debug')) {
   border-right: 1px solid var(--ib-border);
 }
 
+.rail-back {
+  padding: 8px 12px 0;
+}
+.rail-back .el-button {
+  color: var(--ib-ink-2);
+  font-weight: 600;
+}
+.rail-back .el-button:hover {
+  color: var(--ib-indigo);
+}
+
 .self-card {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 16px;
+  padding: 12px 16px 16px;
   border-bottom: 1px solid var(--ib-border);
 }
 .self-card__avatar,

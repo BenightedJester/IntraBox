@@ -116,8 +116,8 @@ function go(route: string) {
         <span class="blob blob--3" />
       </div>
       <div class="hero__content">
-        <div class="hero__badge">INTRABox · 离线可用</div>
-        <h1 class="hero__title">内网工具箱</h1>
+        <div class="hero__badge">要你命3000 · 离线可用</div>
+        <h1 class="hero__title">要你命3000</h1>
         <p class="hero__subtitle">聊天 · 共享 · 三维查看 · 二维码 —— 同一局域网，开箱即用</p>
         <div class="hero__status">
           <button
