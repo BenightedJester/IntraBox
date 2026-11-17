@@ -1,0 +1,12 @@
+patchedDependencies:
+  app-builder-lib@24.13.3: patches/app-builder-lib@24.13.3.patch
+# app-builder-bin 随 electron-builder 25+ 的版本线升级（4.0.0 过旧）
+overrides:
+  app-builder-bin: 4.2.0
+# electron postinstall 下载二进制、esbuild 安装平台二进制，均需放行
+onlyBuiltDependencies:
+  - electron
+  - esbuild
+allowBuilds:
+  electron: true
+  esbuild: true

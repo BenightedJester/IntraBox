@@ -69,6 +69,7 @@ function sendToWindow(channel: string, payload?: unknown) {
 // --------- 移除原生菜单栏后，补回常用快捷键 ---------
 // 移除应用菜单会导致 Windows/Linux 下 Ctrl+C/V 等编辑快捷键失效，
 // 而本应用依赖 Ctrl+V 粘贴图片，故在此手动接管。
+// macOS 不能置空菜单（否则 Cmd+Q 等系统快捷键失效），改用下方最小菜单。
 function registerShortcuts(webContents: WebContents) {
   webContents.on('before-input-event', (event, input) => {
     if (input.type !== 'keyDown') return
@@ -107,6 +108,40 @@ function registerShortcuts(webContents: WebContents) {
 }
 
 // --------- 托盘 / 关闭行为 / 开机自启 ---------
+/** macOS 最小应用菜单：保留 Cmd+Q / Cmd+W / 编辑快捷键等系统标准行为 */
+function buildMacMenu() {
+  return Menu.buildFromTemplate([
+    {
+      label: app.name,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    },
+    {
+      label: '编辑',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
+      ],
+    },
+    {
+      label: '窗口',
+      submenu: [{ role: 'minimize' }, { role: 'zoom' }, { role: 'close' }],
+    },
+  ])
+}
+
 function showMainWindow() {
   if (!win || win.isDestroyed()) {
     createWindow()
@@ -119,7 +154,8 @@ function showMainWindow() {
 
 function hideToTray() {
   win?.hide()
-  if (!trayHintShown && tray) {
+  // displayBalloon 仅 Windows 支持，其他平台静默跳过
+  if (!trayHintShown && tray && process.platform === 'win32') {
     trayHintShown = true
     tray.displayBalloon({
       title: '要你命3000',
@@ -280,7 +316,8 @@ ipcMain.handle('screen:capture', async () => {
       },
     })
     const source = sources.find(s => s.display_id === String(display.id)) ?? sources[0]
-    if (!source) return null
+    // macOS 未授予「屏幕录制」权限时缩略图为空，按失败处理
+    if (!source || source.thumbnail.isEmpty()) return null
     return source.thumbnail.toDataURL()
   } finally {
     win?.show()
@@ -325,16 +362,18 @@ app.on('window-all-closed', () => {
 })
 
 app.on('activate', () => {
-  // On OS X it's common to re-create a window in the app when the
-  // dock icon is clicked and there are no other windows open.
-  if (BrowserWindow.getAllWindows().length === 0) {
+  // macOS 点击 Dock 图标：恢复隐藏中的窗口；窗口已销毁则重建
+  if (win && !win.isDestroyed()) {
+    showMainWindow()
+  } else if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
   }
 })
 
 app.whenReady().then(async () => {
-  // 移除原生应用菜单栏
-  Menu.setApplicationMenu(null)
+  // Windows/Linux 移除原生菜单栏（快捷键由 registerShortcuts 接管）；
+  // macOS 保留最小菜单，确保 Cmd+Q 等系统快捷键可用
+  Menu.setApplicationMenu(process.platform === 'darwin' ? buildMacMenu() : null)
 
   // 本地模型根目录 + intrabox:// 协议
   modelRoots = new ModelRoots(process.env.VITE_PUBLIC!)

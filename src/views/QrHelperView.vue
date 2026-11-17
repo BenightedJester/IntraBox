@@ -8,6 +8,9 @@ import ScreenshotOverlay from '../components/ScreenshotOverlay.vue'
 
 const router = useRouter()
 
+// 粘贴快捷键提示（macOS 为 Cmd）
+const pasteKey = /Mac/i.test(navigator.platform) ? '⌘V' : 'Ctrl+V'
+
 // ---------------- 文字 -> 二维码 ----------------
 const inputText = ref('')
 const qrCanvas = ref<HTMLCanvasElement>()
@@ -277,7 +280,7 @@ onBeforeUnmount(() => {
             @drop="onDrop"
           >
             <el-icon :size="32"><UploadFilled /></el-icon>
-            <p>拖拽图片到此处，或按 Ctrl+V 粘贴图片</p>
+            <p>拖拽图片到此处，或按 {{ pasteKey }} 粘贴图片</p>
           </div>
 
           <div v-loading="decoding" class="decode-result">

@@ -7,17 +7,42 @@
   "directories": {
     "output": "release/${version}"
   },
+  // Electron 分发包下载镜像（GitHub 直连不稳定时保证 win/mac 打包均可完成）
+  "electronDownload": {
+    "mirror": "https://npmmirror.com/mirrors/electron/"
+  },
   "files": [
     "dist",
     "dist-electron"
   ],
   "mac": {
+    // 唯一图标源（1024x1024 PNG，满足 icns 转换要求）
     "icon": "public/icon.png",
     "category": "public.app-category.utilities",
+    // 无 Apple 签名证书：跳过签名。首次打开需右键 → 打开绕过 Gatekeeper
+    "identity": null,
     "target": [
-      "dmg"
+      {
+        "target": "dmg",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      },
+      {
+        // zip 可在 Windows/Linux 上交叉构建；dmg 必须在 macOS 上构建
+        "target": "zip",
+        "arch": [
+          "x64",
+          "arm64"
+        ]
+      }
     ],
-    "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
+    "artifactName": "${productName}-Mac-${version}-${arch}.${ext}",
+    "extendInfo": {
+      // macOS 15+ 局域网隐私权限：UDP 信标发现 / HTTP 文件传输需要
+      "NSLocalNetworkUsageDescription": "用于发现局域网内的其他设备，并传输文件与聊天消息"
+    }
   },
   "win": {
     // 唯一图标源；electron-builder 构建时自动把 PNG 转成多尺寸 ICO

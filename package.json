@@ -1,33 +1,33 @@
 {
   "name": "intrabox",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc && vite build && electron-builder",
+    "build:win": "vue-tsc && vite build && electron-builder --win",
+    "build:mac": "vue-tsc && vite build && electron-builder --mac zip --x64 --arm64",
     "preview": "vite preview"
   },
-  "dependencies": {
+  "devDependencies": {
     "@element-plus/icons-vue": "^2.3.2",
+    "@types/qrcode": "^1.5.6",
+    "@types/three": "^0.187.0",
+    "@vitejs/plugin-vue": "^5.0.4",
     "cesium": "^1.147.0",
+    "electron": "^30.0.1",
+    "electron-builder": "24.13.3",
     "element-plus": "^2.14.7",
     "jsqr": "^1.4.0",
     "qrcode": "^1.5.4",
     "three": "^0.187.0",
-    "vue": "^3.4.21",
-    "vue-router": "^4.6.4"
-  },
-  "devDependencies": {
-    "@types/qrcode": "^1.5.6",
-    "@types/three": "^0.187.0",
-    "@vitejs/plugin-vue": "^5.0.4",
-    "electron": "^30.0.1",
-    "electron-builder": "^24.13.3",
     "typescript": "^5.2.2",
     "vite": "^5.1.6",
     "vite-plugin-electron": "^0.28.6",
     "vite-plugin-electron-renderer": "^0.14.5",
+    "vue": "^3.4.21",
+    "vue-router": "^4.6.4",
     "vue-tsc": "^2.0.26"
   },
   "main": "dist-electron/main.js"

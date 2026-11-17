@@ -91,7 +91,7 @@ function goBack() {
         <div class="setting-item__text">
           <div class="setting-item__label">开机自启</div>
           <div class="setting-item__desc">
-            登录 Windows 后自动启动本应用（默认关闭）
+            登录系统后自动启动本应用（默认关闭）
             <template v-if="!native">；浏览器预览中不可用</template>
             <template v-else-if="!autoStartSupported">；开发模式下不可用，打包后生效</template>
             <template v-else-if="isPortable">

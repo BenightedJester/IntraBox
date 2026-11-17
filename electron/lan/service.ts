@@ -293,10 +293,11 @@ export class LanService extends EventEmitter {
       this.seenIds = new Set(arr.slice(arr.length - 1500))
     }
     this.emit('chat:message', msg)
-    // 收到消息且窗口未聚焦时闪烁任务栏
+    // 收到消息且窗口未聚焦时提醒：Windows/Linux 闪烁任务栏，macOS 弹跳 Dock 图标
     const win = this.getWindow()
     if (msg.dir === 'in' && win && !win.isFocused()) {
-      win.flashFrame(true)
+      if (process.platform === 'darwin') app.dock?.bounce('informational')
+      else win.flashFrame(true)
     }
   }
 

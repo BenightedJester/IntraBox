@@ -1,0 +1,102 @@
+diff --git a/out/packager.js b/out/packager.js
+index 41fbd34f9515c1ca3375a0cf09f868eadb7a054a..ced617915e84a3956bec3f3634edd2072c5554d3 100644
+--- a/out/packager.js
++++ b/out/packager.js
+@@ -344,7 +344,7 @@ class Packager {
+                 break;
+             }
+             if (platform === core_1.Platform.MAC && process.platform === core_1.Platform.WINDOWS.nodeName) {
+-                throw new builder_util_1.InvalidConfigurationError("Build for macOS is supported only on macOS, please see https://electron.build/multi-platform-build");
++                builder_util_1.log.warn("Building macOS target on Windows (patched): unsigned zip only; dmg requires macOS");
+             }
+             const packager = await this.createHelper(platform);
+             const nameToTarget = new Map();
+diff --git a/out/targets/archive.js b/out/targets/archive.js
+index 45b252d238c0bef236d317665ad7f7e5d474b06b..8e0eb60dd33c8bc0f4373f569bff52c3316d55d8 100644
+--- a/out/targets/archive.js
++++ b/out/targets/archive.js
+@@ -160,6 +160,18 @@ async function archive(format, outFile, dirToArchive, options = {}) {
+         builder_util_1.log.warn({ reason: "7z doesn't support NFD-normalized filenames" }, `using zip`);
+         use7z = false;
+     }
++    // patched: Windows 上 7za 无法在 zip 中保留 Unix 符号链接（macOS 应用包必需），
++    // 改用系统自带 bsdtar（libarchive），符号链接按链接正确存储
++    if (process.platform === "win32" && format === "zip") {
++        await (0, fs_1.unlinkIfExists)(outFile);
++        await (0, builder_util_1.exec)("tar", ["-a", "-c", "-f", outFile, options.withoutDir ? "." : path.basename(dirToArchive)], {
++            cwd: options.withoutDir ? dirToArchive : path.dirname(dirToArchive),
++        });
++        // patched: bsdtar 在 Windows 上无法记录可执行位（全部存为 0666），
++        // 按 Mach-O 魔数 / shebang 嗅探二进制与脚本，回填 Unix 0755 权限
++        fixZipExecBits(outFile);
++        return outFile;
++    }
+     const args = use7z ? compute7zCompressArgs(format, options) : computeZipCompressArgs(options);
+     // remove file before - 7z and zip doesn't overwrite file, but update
+     await (0, fs_1.unlinkIfExists)(outFile);
+@@ -186,6 +198,65 @@ async function archive(format, outFile, dirToArchive, options = {}) {
+     return outFile;
+ }
+ exports.archive = archive;
++// patched: 解析 zip 中央目录，为 Mach-O 二进制 / shebang 脚本补可执行位
++function fixZipExecBits(file) {
++    const nodeFs = require("fs");
++    const nodeZlib = require("zlib");
++    const buf = nodeFs.readFileSync(file);
++    let eocd = -1;
++    for (let i = buf.length - 22; i >= 0 && i >= buf.length - 22 - 65536; i--) {
++        if (buf.readUInt32LE(i) === 0x06054b50) {
++            eocd = i;
++            break;
++        }
++    }
++    if (eocd < 0) {
++        return;
++    }
++    const count = buf.readUInt16LE(eocd + 10);
++    let off = buf.readUInt32LE(eocd + 16);
++    let fixed = 0;
++    for (let n = 0; n < count; n++) {
++        if (buf.readUInt32LE(off) !== 0x02014b50) {
++            break;
++        }
++        const method = buf.readUInt16LE(off + 10);
++        const csize = buf.readUInt32LE(off + 20);
++        const usize = buf.readUInt32LE(off + 24);
++        const nameLen = buf.readUInt16LE(off + 28);
++        const extraLen = buf.readUInt16LE(off + 30);
++        const commentLen = buf.readUInt16LE(off + 32);
++        const localOff = buf.readUInt32LE(off + 42);
++        const name = buf.toString("utf8", off + 46, off + 46 + nameLen);
++        const lNameLen = buf.readUInt16LE(localOff + 26);
++        const lExtraLen = buf.readUInt16LE(localOff + 28);
++        const dataOff = localOff + 30 + lNameLen + lExtraLen;
++        let head = null;
++        if (usize > 0 && !name.endsWith("/")) {
++            const comp = buf.subarray(dataOff, dataOff + csize);
++            try {
++                const data = method === 8 ? nodeZlib.inflateRawSync(comp) : comp;
++                head = data.subarray(0, 4);
++            }
++            catch {
++                // 解压失败的条目跳过，保持原样
++            }
++        }
++        const isMachO = head != null && head.length === 4 &&
++            (head.readUInt32LE(0) === 0xfeedfacf || head.readUInt32LE(0) === 0xfeedface ||
++                head.readUInt32BE(0) === 0xfeedfacf || head.readUInt32BE(0) === 0xfeedface);
++        const isScript = head != null && head.length >= 2 && head[0] === 0x23 && head[1] === 0x21;
++        if (isMachO || isScript) {
++            // version made by: 高字节 3 = Unix；external attrs 高 16 位 = st_mode 0100755
++            buf.writeUInt16LE((buf.readUInt16LE(off + 4) & 0xff) | (3 << 8), off + 4);
++            buf.writeUInt32LE((0o100755 << 16) >>> 0, off + 38);
++            fixed++;
++        }
++        off += 46 + nameLen + extraLen + commentLen;
++    }
++    nodeFs.writeFileSync(file, buf);
++    builder_util_1.log.info({ file: path.basename(file), fixed }, "patched executable bits in zip");
++}
+ function debug7zArgs(command) {
+     const args = [command, "-bd"];
+     if (builder_util_1.debug7z.enabled) {
