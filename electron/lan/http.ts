@@ -175,7 +175,9 @@ export function createLanServer(deps: HttpDeps): http.Server {
       }
       return
     }
-    if (parts[0] === 'api' && parts[1] === 'chat' && parts[2] === 'file' && parts[3]) {
+    // 聊天文件：/api/chat/file/<fileId>[/<文件名>]。文件名尾缀仅供 URL 自描述
+    // （查看器按扩展名识别格式），内容仍由 fileId 决定，下载名以登记名为准
+    if (parts[0] === 'api' && parts[1] === 'chat' && parts[2] === 'file' && parts[3] && parts.length <= 5) {
       const file = deps.getOutgoingFile(parts[3])
       if (!file) {
         sendJson(res, 404, { error: '文件已失效（发送方可能已重启或取消）' })

@@ -113,6 +113,25 @@ try {
   check('下载托盘可见', await A.eval('!!document.querySelector(".download-tray")'))
   await A.shot(path.join(SHOTS, '03-chat-a-file.png'))
 
+  // ---------------- 4b. 聊天文件 3D 预览 ----------------
+  phase('4b. 聊天文件 3D 预览（URL 尾缀文件名 → 格式识别）')
+  await B.eval(`window.api.chat.sendFilePath(${JSON.stringify(idA)}, ${P('单文件', '立方体.glb')})`)
+  const glbMsg = await waitFor(async () => {
+    const s = await state(A)
+    return s.messages.find((m) => m.dir === 'in' && m.type === 'file' && m.file?.name === '立方体.glb')
+  }, { label: 'A 收到 glb 文件消息' })
+  check('文件 URL 尾缀真实文件名', glbMsg.file.url.endsWith('/' + encodeURIComponent('立方体.glb')), glbMsg.file.url)
+  await nav(A, '#/chat')
+  await clickByText(A, '.peer-item', '测试机B')
+  await sleep(600)
+  check('聊天卡片出现 3D 预览按钮', await clickByText(A, '.file-card__actions button', '3D 预览'))
+  const pst = await waitFor(() => A.eval(`window.__model && window.__model.source && window.__model.source.name === '立方体.glb' && window.__model.stats.vertices > 0 ? { s: window.__model.stats, src: window.__model.source } : null`), { label: '聊天预览加载 glb', timeout: 30000 })
+  check('聊天预览加载成功（顶点数 24）', pst.s.vertices === 24, String(pst.s.vertices))
+  check('预览来源为 URL 直开且名称正确', pst.src.kind === 'url' && pst.src.relPath === '立方体.glb', JSON.stringify(pst.src))
+  await sleep(600)
+  await A.shot(path.join(SHOTS, '03b-chat-preview.png'))
+  await nav(A, '#/chat')
+
   // ---------------- 5. 离线失败 + 重发 ----------------
   phase('5. 离线发送失败 → 恢复后重发')
   await B.eval('window.api.lan.setRunning(false)')

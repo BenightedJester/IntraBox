@@ -104,6 +104,9 @@ export class ResourceResolver {
     let rel: string
     if (url.startsWith(this.base)) {
       rel = safeDecode(url.slice(this.base.length))
+      // three 的 FileLoader 无条件做 path + url 拼接：入口本身是完整 URL 时
+      // base 会被叠两层，剥掉外层后剩余仍是绝对 URL，需再解析一次
+      if (/^https?:\/\//i.test(rel)) return this.resolve(rel + suffix)
     } else if (/^[a-z]:\//i.test(url) || url.startsWith('/')) {
       // 绝对文件系统路径（常见于 fbx）：先按完整路径试，再退化为文件名
       rel = safeDecode(url)

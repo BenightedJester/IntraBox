@@ -15,6 +15,28 @@ export function lanIPv4s(): string[] {
   return result
 }
 
+/** 枚举本机非回环 IPv4 网卡（含掩码），供信标逐网卡发送 */
+export function lanIfaces(): { address: string; netmask: string }[] {
+  const result: { address: string; netmask: string }[] = []
+  const ifaces = os.networkInterfaces()
+  for (const name of Object.keys(ifaces)) {
+    for (const info of ifaces[name] ?? []) {
+      if (info.family === 'IPv4' && !info.internal) result.push({ address: info.address, netmask: info.netmask })
+    }
+  }
+  return result
+}
+
+/** 由 IP 与掩码计算子网定向广播地址；/32 点对点接口无广播域，返回 null */
+export function broadcastOf(address: string, netmask: string): string | null {
+  const toInt = (ip: string) => ip.split('.').reduce((acc, seg) => (acc << 8) | (parseInt(seg, 10) & 255), 0) >>> 0
+  const ip = toInt(address)
+  const mask = toInt(netmask)
+  if (mask === 0xffffffff) return null
+  const bcast = (ip | (~mask >>> 0)) >>> 0
+  return [bcast >>> 24, (bcast >>> 16) & 255, (bcast >>> 8) & 255, bcast & 255].join('.')
+}
+
 /**
  * 将相对路径安全地拼接到根目录内，防止路径穿越。
  * rel 为已解码的 posix 风格相对路径；返回 null 表示越界。

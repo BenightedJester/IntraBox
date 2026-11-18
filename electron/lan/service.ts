@@ -444,12 +444,14 @@ export class LanService extends EventEmitter {
       ts: typeof data.ts === 'number' ? data.ts : Date.now(),
     }
     if (msg.type === 'file' && data.file?.fileId) {
+      const fileName = String(data.file.name || '文件')
       msg.file = {
         fileId: data.file.fileId,
-        name: String(data.file.name || '文件'),
+        name: fileName,
         size: Number(data.file.size) || 0,
         mime: String(data.file.mime || 'application/octet-stream'),
-        url: `http://${remoteIp}:${data.from.port}/api/chat/file/${data.file.fileId}`,
+        // 尾缀真实文件名使 URL 自描述：查看器按扩展名识别格式、历史按名展示
+        url: `http://${remoteIp}:${data.from.port}/api/chat/file/${data.file.fileId}/${encodeURIComponent(fileName)}`,
       }
     }
     this.pushMessage(msg)

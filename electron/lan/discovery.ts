@@ -1,7 +1,7 @@
 import dgram from 'node:dgram'
 import { EventEmitter } from 'node:events'
 import type { PeerInfo } from '../../src/shared/lan-types'
-import { lanIPv4s } from './fs-utils'
+import { broadcastOf, lanIfaces, lanIPv4s } from './fs-utils'
 
 const GROUP = '239.255.77.88'
 const BEACON_PORT = 41777
@@ -146,16 +146,37 @@ export class Discovery extends EventEmitter {
       name: this.selfName,
       port: this.httpPort,
     }
-    const buf = Buffer.from(JSON.stringify(packet), 'utf-8')
-    try {
-      this.socket.send(buf, 0, buf.length, BEACON_PORT, GROUP)
-    } catch {
-      /* 忽略 */
+    this.sendPacket(Buffer.from(JSON.stringify(packet), 'utf-8'))
+  }
+
+  /**
+   * 逐网卡显式发送：组播指定出口接口 + 子网定向广播。
+   * 不依赖系统默认组播/广播选路，避免被 WSL/VMware 等低 metric 虚拟网卡截胡。
+   * 注：Windows 下 setMulticastInterface 可能不生效，子网定向广播是可靠通道。
+   */
+  private sendPacket(buf: Buffer) {
+    if (!this.socket) return
+    for (const iface of lanIfaces()) {
+      try {
+        this.socket.setMulticastInterface(iface.address)
+        this.socket.send(buf, 0, buf.length, BEACON_PORT, GROUP)
+      } catch {
+        /* 个别网卡不支持组播，忽略 */
+      }
+      const bcast = broadcastOf(iface.address, iface.netmask)
+      if (bcast) {
+        try {
+          this.socket.send(buf, 0, buf.length, BEACON_PORT, bcast)
+        } catch {
+          /* 广播在部分网络不可用 */
+        }
+      }
     }
+    // 全局广播兜底（单网卡环境下与逐网卡发送等效）
     try {
       this.socket.send(buf, 0, buf.length, BEACON_PORT, '255.255.255.255')
     } catch {
-      /* 广播在部分网络不可用 */
+      /* 忽略 */
     }
   }
 
@@ -169,12 +190,7 @@ export class Discovery extends EventEmitter {
         JSON.stringify({ app: 'intrabox', t: 'bye', v: 1, id: this.selfId, name: this.selfName, port: this.httpPort }),
         'utf-8',
       )
-      try {
-        this.socket.send(bye, 0, bye.length, BEACON_PORT, GROUP)
-        this.socket.send(bye, 0, bye.length, BEACON_PORT, '255.255.255.255')
-      } catch {
-        /* 忽略 */
-      }
+      this.sendPacket(bye)
       try {
         this.socket.close()
       } catch {
